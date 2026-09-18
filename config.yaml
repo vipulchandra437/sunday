@@ -36,6 +36,8 @@ tool_risks:
   git.status: LOW
   git.diff: LOW
   git.commit: MEDIUM
+  git.push: MEDIUM
+  git.push: MEDIUM
   web.search: LOW
   web.fetch: LOW
   browser.navigate: LOW

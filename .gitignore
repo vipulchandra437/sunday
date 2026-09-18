@@ -8,6 +8,7 @@ __pycache__/
 checkpoints.sqlite3
 data/
 .pytest_cache/
+.coverage
 .mypy_cache/
 .ruff_cache/
 .idea/

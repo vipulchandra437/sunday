@@ -93,7 +93,7 @@ def test_tools_list():
         assert resp.status_code == 200
         body = resp.json()
         names = [t["name"] for t in body["tools"]]
-        assert body["count"] == 6
+        assert body["count"] == 8
         assert names == [
             "filesystem.list",
             "filesystem.read",
@@ -101,6 +101,8 @@ def test_tools_list():
             "shell.run",
             "git.status",
             "git.diff",
+            "git.commit",
+            "git.push",
         ]
         by_name = {t["name"]: t for t in body["tools"]}
         assert by_name["shell.run"]["risk_level"] == "MEDIUM"

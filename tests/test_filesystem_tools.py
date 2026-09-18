@@ -203,6 +203,8 @@ def test_filesystem_tools_registry():
         "shell.run",
         "git.status",
         "git.diff",
+        "git.commit",
+        "git.push",
     ]
     for tool in TOOLS:
         assert tool.validate_scope  # concrete tool instances
