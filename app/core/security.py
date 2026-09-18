@@ -42,6 +42,8 @@ RISK_POLICY: dict[str, str] = {
     "git.diff": "ALLOW",
     "git.commit": "REQUEST_APPROVAL",
     "git.push": "REQUEST_APPROVAL",
+    "code.edit": "REQUEST_APPROVAL",
+    "test.run": "REQUEST_APPROVAL",
 }
 
 

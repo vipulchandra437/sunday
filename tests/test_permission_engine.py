@@ -79,11 +79,15 @@ def test_risk_policy_is_static_authoritative():
         "git.diff": "ALLOW",
         "git.commit": "REQUEST_APPROVAL",
         "git.push": "REQUEST_APPROVAL",
+        "code.edit": "REQUEST_APPROVAL",
+        "test.run": "REQUEST_APPROVAL",
     }
     engine = load_engine()
     assert engine.evaluate("filesystem.list", {}) is PolicyDecision.ALLOW
     assert engine.evaluate("git.push", {}) is PolicyDecision.REQUEST_APPROVAL
     assert engine.evaluate("shell.run", {}) is PolicyDecision.REQUEST_APPROVAL
+    assert engine.evaluate("code.edit", {}) is PolicyDecision.REQUEST_APPROVAL
+    assert engine.evaluate("test.run", {}) is PolicyDecision.REQUEST_APPROVAL
 
 
 def test_risk_levels_ranked():
