@@ -1,0 +1,50 @@
+default_model_provider: openrouter
+
+providers:
+  openrouter:
+    model: meta-llama/llama-3.3-70b-instruct:free
+    base_url: https://openrouter.ai/api/v1
+    supports_tools: true
+    price_desc: free-or-low-cost
+    data_handling: sent-to-external-provider
+  ollama:
+    model: llama3.2
+    base_url: http://localhost:11434
+    supports_tools: true
+    price_desc: local-free
+    data_handling: local-only
+
+workspace_paths:
+  - D:\Sunday
+  - D:\Projects\Sunday
+
+risk_thresholds:
+  approval_min_risk: MEDIUM
+  block_min_risk: CONTROL
+  deny_unknown_tools: true
+  blocked_tools:
+    - credentials.access
+    - security.policy_change
+    - permission.policy_change
+    - approval.engine_modify
+
+tool_risks:
+  filesystem.list: LOW
+  filesystem.read: LOW
+  filesystem.write: MEDIUM
+  shell.run: HIGH
+  git.status: LOW
+  git.diff: LOW
+  git.commit: MEDIUM
+  web.search: LOW
+  web.fetch: LOW
+  browser.navigate: LOW
+  browser.extract: LOW
+  browser.fill: HIGH
+  email.draft: LOW
+  email.send: HIGH
+  jobs.prepare_application: MEDIUM
+  jobs.submit_application: HIGH
+  document.parse: LOW
+  report.generate: LOW
+  notification.send: LOW
