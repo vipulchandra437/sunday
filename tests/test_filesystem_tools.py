@@ -196,7 +196,14 @@ def test_filesystem_tools_registry():
     from app.services.tools import TOOLS
 
     names = [tool.name for tool in TOOLS]
-    assert names == ["filesystem.list", "filesystem.read", "filesystem.write"]
+    assert names == [
+        "filesystem.list",
+        "filesystem.read",
+        "filesystem.write",
+        "shell.run",
+        "git.status",
+        "git.diff",
+    ]
     for tool in TOOLS:
         assert tool.validate_scope  # concrete tool instances
 

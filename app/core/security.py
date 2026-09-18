@@ -31,6 +31,13 @@ class PolicyDecision(str, enum.Enum):
     BLOCK = "BLOCK"
 
 
+# Per-tool risk policy derived from config.yaml `tool_risks`
+RISK_POLICY: dict[str, RiskLevel] = {
+    name: RiskLevel(str(level).upper())
+    for name, level in config.tool_risks.items()
+}
+
+
 class PermissionEngine:
     def __init__(self, cfg: AppConfig | None = None) -> None:
         app_config = cfg or config
