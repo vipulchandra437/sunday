@@ -13,6 +13,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 class Settings(BaseModel):
     openrouter_api_key: str = Field(default="")
+    brave_api_key: str = Field(default="")
     ollama_base_url: str = Field(default="http://localhost:11434")
     database_url: str = Field(default="sqlite:///./sunday.db")
     langgraph_checkpoint_path: str | None = Field(default=None)
@@ -24,6 +25,7 @@ class Settings(BaseModel):
     def from_env(cls) -> "Settings":
         return cls(
             openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "").strip(),
+            brave_api_key=os.getenv("BRAVE_API_KEY", "").strip(),
             ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").strip(),
             database_url=os.getenv("DATABASE_URL", "sqlite:///./sunday.db").strip(),
             langgraph_checkpoint_path=os.getenv("LANGGRAPH_CHECKPOINT_PATH", "").strip() or None,

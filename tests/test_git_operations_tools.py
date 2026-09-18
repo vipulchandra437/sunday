@@ -235,8 +235,22 @@ def test_push_outside_workspace(tmp_path, monkeypatch):
     assert "outside approved workspace" in result.error
 
 
+def test_push_remote_not_found(git_repo):
+    result = run_async(GitPush().execute({"repo_path": str(git_repo)}))
+    assert result.success is False
+    assert "Remote 'origin' not found" in result.error
+
+
+def test_push_dry_run_reports_remote_url(git_repo_with_remote):
+    repo, _ = git_repo_with_remote
+    result = run_async(GitPush().execute({"repo_path": str(repo), "dry_run": True}))
+    assert result.success is True
+    assert result.output["remote_url"].endswith("remote.git")
+
+
 def test_tool_metadata():
     assert GitCommit().supports_dry_run is True
     assert GitCommit().risk_level == "MEDIUM"
     assert GitPush().supports_dry_run is True
     assert GitPush().risk_level == "MEDIUM"
+    assert GitPush().timeout_seconds == 60

@@ -16,10 +16,15 @@ async def _run_git(
         stderr=asyncio.subprocess.PIPE,
         cwd=repo_path,
     )
-    stdout, stderr = await asyncio.wait_for(
-        proc.communicate(),
-        timeout=timeout_seconds,
-    )
+    try:
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(),
+            timeout=timeout_seconds,
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        raise
     return (
         proc.returncode,
         stdout.decode("utf-8", errors="replace"),
@@ -166,7 +171,7 @@ class GitPush(Tool):
     purpose = "Push local commits to a remote branch (requires approval)"
     risk_level = "MEDIUM"
     allowed_scope: list[str] = []
-    timeout_seconds = 30
+    timeout_seconds = 60
     supports_dry_run = True  # Show what would be pushed without pushing
     audit_level = "full"
 
@@ -196,6 +201,17 @@ class GitPush(Tool):
             )
 
         try:
+            returncode, stdout, _ = await _run_git(
+                repo_path, self.timeout_seconds, "remote", "get-url", remote
+            )
+            if returncode != 0:
+                return ToolResult(
+                    success=False,
+                    output=None,
+                    error=f"Remote '{remote}' not found",
+                )
+            remote_url = stdout.strip()
+
             if branch is None:
                 returncode, stdout, stderr = await _run_git(
                     repo_path, self.timeout_seconds, "rev-parse", "--abbrev-ref", "HEAD"
@@ -230,6 +246,7 @@ class GitPush(Tool):
                         "ahead": ahead,
                         "has_upstream": has_upstream,
                         "pushed": False,
+                        "remote_url": remote_url,
                     },
                     metadata={"mode": "dry_run", "repo_path": repo_path},
                 )
@@ -259,7 +276,11 @@ class GitPush(Tool):
                     "branch": branch,
                     "ahead": 0 if up_to_date else (ahead or 0),
                 },
-                metadata={"mode": "live", "repo_path": repo_path},
+                metadata={
+                    "mode": "live",
+                    "repo_path": repo_path,
+                    "remote_url": remote_url,
+                },
             )
         except asyncio.TimeoutError:
             return ToolResult(
