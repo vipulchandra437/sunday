@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.models import Approval, AuditEvent, Task
+from app.core.security import PermissionEngine, PolicyDecision
 from app.services.audit_service import AuditService
-from app.services.model_provider import provider_status
 from app.services.task_orchestrator import TaskStateMachine, TaskStatus
 
 router = APIRouter()
@@ -40,11 +40,6 @@ class TaskTransition(BaseModel):
 
 class ApprovalDecision(BaseModel):
     decision: str = Field(pattern="^(approve|deny)$")
-
-
-@router.get("/health")
-async def health() -> dict[str, Any]:
-    return {"status": "ok", "providers": provider_status()}
 
 
 @router.post("/tasks", response_model=TaskOut, status_code=201)
@@ -188,3 +183,141 @@ async def audit_events(
         }
         for e in db.scalars(query).all()
     ]
+
+
+# ---------------------------------------------------------------------------
+# Tool execution API (Phase 2, Part 6)
+# ---------------------------------------------------------------------------
+tools_router = APIRouter(prefix="/api", tags=["tools"])
+
+_permission_engine = PermissionEngine()
+
+
+def _policy_decision(
+    tool_name: str, context: dict[str, Any] | None = None
+) -> PolicyDecision:
+    return _permission_engine.evaluate(tool_name, context)
+
+
+class ToolExecutionRequest(BaseModel):
+    tool_name: str
+    input_data: dict[str, Any]
+
+
+class ToolExecutionResponse(BaseModel):
+    success: bool
+    output: Any | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    approval_required: bool = False
+
+
+class ToolListResponse(BaseModel):
+    tools: list[dict[str, Any]]
+    count: int
+
+
+class PermissionCheckRequest(BaseModel):
+    tool_name: str
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+class PermissionCheckResponse(BaseModel):
+    tool_name: str
+    allowed: bool
+    requires_approval: bool
+    reason: str
+
+
+# Tool execution state (simple in-memory for now)
+pending_approvals: dict[str, dict] = {}
+
+
+@tools_router.post("/tools/list", response_model=ToolListResponse)
+async def list_tools() -> ToolListResponse:
+    """List all available tools with metadata."""
+    from app.services.tools import TOOLS
+
+    tools = [
+        {
+            "name": tool.name,
+            "purpose": tool.purpose,
+            "risk_level": tool.risk_level,
+            "supports_dry_run": tool.supports_dry_run,
+        }
+        for tool in TOOLS
+    ]
+
+    return ToolListResponse(tools=tools, count=len(tools))
+
+
+@tools_router.post("/tools/check-permission", response_model=PermissionCheckResponse)
+async def check_permission(
+    request: PermissionCheckRequest,
+) -> PermissionCheckResponse:
+    """Check if a tool is allowed, denied, or requires approval."""
+    from app.services.tools import TOOLS
+
+    tool_exists = any(t.name == request.tool_name for t in TOOLS)
+    if not tool_exists:
+        raise HTTPException(status_code=404, detail=f"Tool '{request.tool_name}' not found")
+
+    decision = _policy_decision(request.tool_name, request.context)
+
+    return PermissionCheckResponse(
+        tool_name=request.tool_name,
+        allowed=decision is PolicyDecision.ALLOW,
+        requires_approval=decision is PolicyDecision.REQUEST_APPROVAL,
+        reason=f"Policy: {decision.value}",
+    )
+
+
+@tools_router.post("/tools/execute", response_model=ToolExecutionResponse)
+async def execute_tool(request: ToolExecutionRequest) -> ToolExecutionResponse:
+    """Execute a tool after checking permissions."""
+    from app.services.tools import TOOLS
+
+    tool = next((t for t in TOOLS if t.name == request.tool_name), None)
+    if tool is None:
+        raise HTTPException(status_code=404, detail=f"Tool '{request.tool_name}' not found")
+
+    try:
+        tool.validate_input(request.input_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid input: {exc}") from exc
+
+    decision = _policy_decision(request.tool_name)
+
+    if decision is PolicyDecision.DENY:
+        raise HTTPException(status_code=403, detail=f"Tool '{request.tool_name}' is denied by policy")
+
+    if decision is PolicyDecision.BLOCK:
+        raise HTTPException(status_code=403, detail=f"Tool '{request.tool_name}' is permanently blocked")
+
+    if decision is PolicyDecision.REQUEST_APPROVAL:
+        return ToolExecutionResponse(
+            success=False,
+            output=None,
+            error=f"Approval required for tool '{request.tool_name}'",
+            metadata={
+                "approval_required": True,
+                "tool_name": request.tool_name,
+            },
+            approval_required=True,
+        )
+
+    result = await tool.execute(request.input_data)
+    return ToolExecutionResponse(
+        success=result.success,
+        output=result.output,
+        error=result.error,
+        metadata=result.metadata or {},
+    )
+
+
+@tools_router.post("/tools/approve")
+async def submit_approval(approval_id: str) -> dict[str, Any]:
+    """Submit approval for a pending action (placeholder for approval UI integration)."""
+    # This is a placeholder - in real implementation, would validate approval token
+    # and allow the original request to proceed
+    return {"message": "Approval recorded", "approval_id": approval_id}
