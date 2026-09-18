@@ -2,9 +2,8 @@ from .filesystem import FileSystemList, FileSystemRead, FileSystemWrite
 from .shell import ShellRun
 from .git_inspection import GitStatus, GitDiff
 from .git_operations import GitCommit, GitPush
-from .web_search import WebSearch
 
-TOOLS = [
+ALL_TOOLS = [
     FileSystemList(),
     FileSystemRead(),
     FileSystemWrite(),
@@ -13,5 +12,6 @@ TOOLS = [
     GitDiff(),
     GitCommit(),
     GitPush(),
-    WebSearch(),
 ]
+
+__all__ = ["ALL_TOOLS"]

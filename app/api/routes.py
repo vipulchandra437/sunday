@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import time
 from datetime import datetime
@@ -238,7 +238,7 @@ pending_approvals: dict[str, dict] = {}
 @tools_router.post("/tools/list", response_model=ToolListResponse)
 async def list_tools() -> ToolListResponse:
     """List all available tools with metadata."""
-    from app.services.tools import TOOLS
+    from app.services.tools import ALL_TOOLS
 
     tools = [
         {
@@ -247,7 +247,7 @@ async def list_tools() -> ToolListResponse:
             "risk_level": tool.risk_level,
             "supports_dry_run": tool.supports_dry_run,
         }
-        for tool in TOOLS
+        for tool in ALL_TOOLS
     ]
 
     return ToolListResponse(tools=tools, count=len(tools))
@@ -258,9 +258,9 @@ async def check_permission(
     request: PermissionCheckRequest,
 ) -> PermissionCheckResponse:
     """Check if a tool is allowed, denied, or requires approval."""
-    from app.services.tools import TOOLS
+    from app.services.tools import ALL_TOOLS
 
-    tool_exists = any(t.name == request.tool_name for t in TOOLS)
+    tool_exists = any(t.name == request.tool_name for t in ALL_TOOLS)
     if not tool_exists:
         raise HTTPException(status_code=404, detail=f"Tool '{request.tool_name}' not found")
 
@@ -279,9 +279,9 @@ async def check_permission(
 @tools_router.post("/tools/execute", response_model=ToolExecutionResponse)
 async def execute_tool(request: ToolExecutionRequest) -> ToolExecutionResponse:
     """Execute a tool after checking permissions."""
-    from app.services.tools import TOOLS
+    from app.services.tools import ALL_TOOLS
 
-    tool = next((t for t in TOOLS if t.name == request.tool_name), None)
+    tool = next((t for t in ALL_TOOLS if t.name == request.tool_name), None)
     if tool is None:
         raise HTTPException(status_code=404, detail=f"Tool '{request.tool_name}' not found")
 

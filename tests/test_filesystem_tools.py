@@ -193,9 +193,9 @@ def test_write_validate_input():
 # ---------------------------------------------------------------------------
 
 def test_filesystem_tools_registry():
-    from app.services.tools import TOOLS
+    from app.services.tools import ALL_TOOLS
 
-    names = [tool.name for tool in TOOLS]
+    names = [tool.name for tool in ALL_TOOLS]
     assert names == [
         "filesystem.list",
         "filesystem.read",
@@ -205,9 +205,8 @@ def test_filesystem_tools_registry():
         "git.diff",
         "git.commit",
         "git.push",
-        "web.search",
     ]
-    for tool in TOOLS:
+    for tool in ALL_TOOLS:
         assert tool.validate_scope  # concrete tool instances
 
 

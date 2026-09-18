@@ -31,10 +31,17 @@ class PolicyDecision(str, enum.Enum):
     BLOCK = "BLOCK"
 
 
-# Per-tool risk policy derived from config.yaml `tool_risks`
-RISK_POLICY: dict[str, RiskLevel] = {
-    name: RiskLevel(str(level).upper())
-    for name, level in config.tool_risks.items()
+# Per-tool policy: explicit decision for registered tools.
+# Blocked tools and the distrusted-data zone (D) still take precedence in evaluate().
+RISK_POLICY: dict[str, str] = {
+    "filesystem.list": "ALLOW",
+    "filesystem.read": "ALLOW",
+    "filesystem.write": "REQUEST_APPROVAL",
+    "shell.run": "REQUEST_APPROVAL",
+    "git.status": "ALLOW",
+    "git.diff": "ALLOW",
+    "git.commit": "REQUEST_APPROVAL",
+    "git.push": "REQUEST_APPROVAL",
 }
 
 
@@ -65,6 +72,10 @@ class PermissionEngine:
 
         if tool_name in self.blocked_tools:
             decision = PolicyDecision.BLOCK
+        elif zone == "D":
+            decision = PolicyDecision.BLOCK
+        elif tool_name in RISK_POLICY:
+            decision = PolicyDecision(RISK_POLICY[tool_name])
         else:
             decision = self._decide(tool_name, zone)
 

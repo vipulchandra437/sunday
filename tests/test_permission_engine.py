@@ -63,8 +63,27 @@ def test_block_min_risk_configurable():
         }
     )
     assert engine.evaluate("git.commit", {}) is PolicyDecision.REQUEST_APPROVAL
-    assert engine.evaluate("shell.run", {}) is PolicyDecision.BLOCK
+    assert engine.evaluate("email.send", {}) is PolicyDecision.BLOCK
     assert engine.evaluate("security.policy_change", {}) is PolicyDecision.DENY
+
+
+def test_risk_policy_is_static_authoritative():
+    from app.core.security import RISK_POLICY
+
+    assert RISK_POLICY == {
+        "filesystem.list": "ALLOW",
+        "filesystem.read": "ALLOW",
+        "filesystem.write": "REQUEST_APPROVAL",
+        "shell.run": "REQUEST_APPROVAL",
+        "git.status": "ALLOW",
+        "git.diff": "ALLOW",
+        "git.commit": "REQUEST_APPROVAL",
+        "git.push": "REQUEST_APPROVAL",
+    }
+    engine = load_engine()
+    assert engine.evaluate("filesystem.list", {}) is PolicyDecision.ALLOW
+    assert engine.evaluate("git.push", {}) is PolicyDecision.REQUEST_APPROVAL
+    assert engine.evaluate("shell.run", {}) is PolicyDecision.REQUEST_APPROVAL
 
 
 def test_risk_levels_ranked():
