@@ -19,7 +19,7 @@ class FileSystemList(Tool):
         if not isinstance(data["path"], str):
             raise ValueError("path must be a string")
 
-    async def execute(self, input_data: dict[str, Any]) -> ToolResult:
+    async def _execute(self, input_data: dict[str, Any]) -> ToolResult:
         path = input_data["path"]
 
         if not self.validate_scope(path):
@@ -65,7 +65,7 @@ class FileSystemRead(Tool):
         if not isinstance(data["path"], str):
             raise ValueError("path must be a string")
 
-    async def execute(self, input_data: dict[str, Any]) -> ToolResult:
+    async def _execute(self, input_data: dict[str, Any]) -> ToolResult:
         path = input_data["path"]
 
         if not self.validate_scope(path):
@@ -125,7 +125,7 @@ class FileSystemWrite(Tool):
         if not isinstance(data["content"], str):
             raise ValueError("content must be a string")
 
-    async def execute(self, input_data: dict[str, Any]) -> ToolResult:
+    async def _execute(self, input_data: dict[str, Any]) -> ToolResult:
         path = input_data["path"]
         content = input_data["content"]
 

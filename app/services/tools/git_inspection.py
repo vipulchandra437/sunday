@@ -20,7 +20,7 @@ class GitStatus(Tool):
         if not isinstance(data["repo_path"], str):
             raise ValueError("repo_path must be a string")
 
-    async def execute(self, input_data: dict[str, Any]) -> ToolResult:
+    async def _execute(self, input_data: dict[str, Any]) -> ToolResult:
         repo_path = input_data["repo_path"]
 
         if not self.validate_scope(repo_path):
@@ -113,7 +113,7 @@ class GitDiff(Tool):
         if "target" in data and not isinstance(data["target"], str):
             raise ValueError("target must be a string")
 
-    async def execute(self, input_data: dict[str, Any]) -> ToolResult:
+    async def _execute(self, input_data: dict[str, Any]) -> ToolResult:
         repo_path = input_data["repo_path"]
         target = input_data.get("target", "HEAD")
 

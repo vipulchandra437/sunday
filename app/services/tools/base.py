@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.config.settings import config
+from app.core.audit_service import audit_log
 
 
 class ToolResult(BaseModel):
@@ -31,8 +32,11 @@ class Tool(ABC):
     audit_level: Literal["minimal", "full", "redacted"] = "full"
 
     @abstractmethod
-    async def execute(self, input_data: dict[Any, Any]) -> ToolResult:
-        """Execute the tool with validated input."""
+    async def _execute(self, input_data: dict[Any, Any]) -> ToolResult:
+        """Execute the tool with validated input.
+
+        Subclasses implement the actual tool logic here.
+        """
 
     @abstractmethod
     def validate_input(self, data: dict[Any, Any]) -> None:
@@ -40,6 +44,21 @@ class Tool(ABC):
 
         Raises ValueError on invalid input.
         """
+
+    async def execute(self, input_data: dict[Any, Any]) -> ToolResult:
+        """Template method: run the tool and record failures in the audit log."""
+        try:
+            result = await self._execute(input_data)
+        except Exception as exc:
+            result = ToolResult(success=False, output=None, error=str(exc))
+
+        if not result.success:
+            audit_log(
+                event_type="tool_failure",
+                data={"tool_name": self.name, "error": result.error},
+            )
+
+        return result
 
     def validate_scope(self, path: str) -> bool:
         """Check if path is within an approved workspace."""

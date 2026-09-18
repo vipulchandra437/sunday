@@ -73,7 +73,7 @@ class ShellRun(Tool):
 
         return True, "OK"
 
-    async def execute(self, input_data: dict[str, Any]) -> ToolResult:
+    async def _execute(self, input_data: dict[str, Any]) -> ToolResult:
         command = input_data["command"]
         cwd = input_data.get("cwd", ".")
 

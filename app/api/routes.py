@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from typing import Any
 
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.models import Approval, AuditEvent, Task
+from app.core.audit_service import audit_service
 from app.core.security import PermissionEngine, PolicyDecision
 from app.services.audit_service import AuditService
 from app.services.task_orchestrator import TaskStateMachine, TaskStatus
@@ -264,6 +266,8 @@ async def check_permission(
 
     decision = _policy_decision(request.tool_name, request.context)
 
+    audit_service.log_permission_eval(request.tool_name, decision.value)
+
     return PermissionCheckResponse(
         tool_name=request.tool_name,
         allowed=decision is PolicyDecision.ALLOW,
@@ -289,12 +293,33 @@ async def execute_tool(request: ToolExecutionRequest) -> ToolExecutionResponse:
     decision = _policy_decision(request.tool_name)
 
     if decision is PolicyDecision.DENY:
+        audit_service.log_tool_run(
+            tool_name=request.tool_name,
+            task_id=None,
+            policy_outcome=decision.value,
+            success=False,
+            error="denied by policy",
+        )
         raise HTTPException(status_code=403, detail=f"Tool '{request.tool_name}' is denied by policy")
 
     if decision is PolicyDecision.BLOCK:
+        audit_service.log_tool_run(
+            tool_name=request.tool_name,
+            task_id=None,
+            policy_outcome=decision.value,
+            success=False,
+            error="permanently blocked",
+        )
         raise HTTPException(status_code=403, detail=f"Tool '{request.tool_name}' is permanently blocked")
 
     if decision is PolicyDecision.REQUEST_APPROVAL:
+        audit_service.log_tool_run(
+            tool_name=request.tool_name,
+            task_id=None,
+            policy_outcome=decision.value,
+            success=False,
+            error=f"Approval required for tool '{request.tool_name}'",
+        )
         return ToolExecutionResponse(
             success=False,
             output=None,
@@ -306,7 +331,17 @@ async def execute_tool(request: ToolExecutionRequest) -> ToolExecutionResponse:
             approval_required=True,
         )
 
+    started_at = time.perf_counter()
     result = await tool.execute(request.input_data)
+    duration_ms = int((time.perf_counter() - started_at) * 1000)
+    audit_service.log_tool_run(
+        tool_name=request.tool_name,
+        task_id=None,
+        policy_outcome=decision.value,
+        success=result.success,
+        duration_ms=duration_ms,
+        error=result.error,
+    )
     return ToolExecutionResponse(
         success=result.success,
         output=result.output,
@@ -320,4 +355,5 @@ async def submit_approval(approval_id: str) -> dict[str, Any]:
     """Submit approval for a pending action (placeholder for approval UI integration)."""
     # This is a placeholder - in real implementation, would validate approval token
     # and allow the original request to proceed
+    audit_service.log_approval_decision(approval_id, "APPROVED")
     return {"message": "Approval recorded", "approval_id": approval_id}

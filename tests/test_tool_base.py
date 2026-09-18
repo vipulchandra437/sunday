@@ -49,7 +49,7 @@ class _DummyTool(Tool):
     risk_level = "LOW"
     allowed_scope = ["/tmp"]
 
-    async def execute(self, input_data):
+    async def _execute(self, input_data):
         return ToolResult(success=True, output="done")
 
     def validate_input(self, data):
@@ -88,7 +88,7 @@ class _ScopeTool(Tool):
     risk_level = "LOW"
     allowed_scope = []
 
-    async def execute(self, input_data):
+    async def _execute(self, input_data):
         return ToolResult(success=True)
 
     def validate_input(self, data):
